@@ -21,7 +21,6 @@ module.exports = NodeHelper.create({
             url: this.url,
             method: 'get',
             headers: {
-                "api-key": "e7b926a1-cddb-46e7-bb27-6d134e5b5feb",
                 "referer": "https://app.rtd-denver.com"
             }
         };
