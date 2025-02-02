@@ -91,52 +91,57 @@ Module.register('MMM-Next-Ride', {
             td.style.textAlign = "left";
             td.style.fontSize = "25px";
             td.textContent = stopName;
-            td.textContent.color
+
+            let tripTable = document.createElement('table');
             //Trips
-            row = wrapper.insertRow();
+            row = tripTable.insertRow();
             td = row.insertCell();
+            td.style.fontSize = "15px";
             td.textContent = "Next Trip";
             td = row.insertCell();
+            td.style.fontSize = "15px";
             td.textContent = "2nd Trip";
             td = row.insertCell();
+            td.style.fontSize = "15px";
             td.textContent = "3rd Trip";
             //Status
-            let row1 = wrapper.insertRow();
-            let row2 = wrapper.insertRow();
+            let row1 = tripTable.insertRow();
+            let row2 = tripTable.insertRow();
             for(let i=0; i<max; i++) {
                 let sTime = moment(timeTable[i].sTime).format('hh:mm');
                 let pTime = null;
                 let dTime = null;
-                let dTimeStr = "";
+                let dTimeStr = "On Time";
                 let td1 = row1.insertCell();
-                td1.style.textAlign = "left";
                 td1.style.fontSize = "25px";
+                td1.style.color = 'green';
                 let td2 = row2.insertCell();
-                td2.style.textAlign = "left";
                 td2.style.fontSize = "25px";
 
                 if(timeTable[i].pTime){
                     pTime = moment(timeTable[i].pTime).format('hh:mm');
                     if(timeTable[i].pTime == timeTable[i].sTime){
                         dTimeStr = 'On Time'
+                        td1.style.color = 'green';
                     } else if(timeTable[i].pTime > timeTable[i].sTime){
                         dTime = timeTable[i].pTime - timeTable[i].sTime;
-                        dTimeStr = moment(dTime).format('mm') + " late";
-                    } else {
-                        dTime = timeTable[i].sTime - timeTable[i].pTime;
-                        dTimeStr = moment(dTime).format('mm') + " early";
-                    }
-
-                    if(timeTable[i].status === "CANCELLED") {
-                        td1.textContent = timeTable[i].status;
+                        dTimeStr = ":"+ moment(dTime).format('mm') + " late";
                         td1.style.color = 'red';
                     } else {
-                        td1.textContent = dTimeStr;
+                        dTime = timeTable[i].sTime - timeTable[i].pTime;
+                        dTimeStr = ":"+ moment(dTime).format('mm') + " early";
+                        td1.style.color = 'green';
                     }
-
-                    td2.textContent = sTime;
+                }    
+                if(timeTable[i].status === "CANCELLED") {
+                    td1.textContent = timeTable[i].status;
+                    td1.style.color = 'red';
+                } else {
+                    td1.textContent = dTimeStr;
                 }
-            }    
+                td2.textContent = sTime;
+            }
+            wrapper.append(tripTable);    
         } else {
             // Otherwise lets just use a simple div
             wrapper = document.createElement('div');
