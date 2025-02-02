@@ -8,7 +8,8 @@
 Module.register('MMM-Next-Ride', {
 
 	defaults: {
-            route:    10634,
+            route:    35245,
+            direction: 'Northbound',
             interval: 300000 // Every 5 mins
         },
 
@@ -61,14 +62,15 @@ Module.register('MMM-Next-Ride', {
 
             let timeTable = [];
             let max = 0;
-
+            const stopName = this.route.name;
             //fill time table array
             this.route.branches.map((branch) => {
-				if(branch.directionName === "Eastbound") {
+				if(branch.directionName === this.config.direction) {
 					branch.upcomingTrips.map((trip) => {
 						let times = {
 							"sTime": trip.scheduledArrivalTime,
-							"pTime": trip.predictedArrivalTime
+							"pTime": trip.predictedArrivalTime,
+                            "status": trip.tripStopStatus
 						}
 						timeTable.push(times);
 					});
@@ -83,32 +85,58 @@ Module.register('MMM-Next-Ride', {
             if(max > 3) {
                 max = 3;
             }
+            //Name
             let row = wrapper.insertRow();
-
+            let td = row.insertCell();
+            td.style.textAlign = "left";
+            td.style.fontSize = "25px";
+            td.textContent = stopName;
+            td.textContent.color
+            //Trips
+            row = wrapper.insertRow();
+            td = row.insertCell();
+            td.textContent = "Next Trip";
+            td = row.insertCell();
+            td.textContent = "2nd Trip";
+            td = row.insertCell();
+            td.textContent = "3rd Trip";
+            //Status
+            let row1 = wrapper.insertRow();
+            let row2 = wrapper.insertRow();
             for(let i=0; i<max; i++) {
                 let sTime = moment(timeTable[i].sTime).format('hh:mm');
                 let pTime = null;
                 let dTime = null;
                 let dTimeStr = "";
-                let travelTime = null;
+                let td1 = row1.insertCell();
+                td1.style.textAlign = "left";
+                td1.style.fontSize = "25px";
+                let td2 = row2.insertCell();
+                td2.style.textAlign = "left";
+                td2.style.fontSize = "25px";
+
                 if(timeTable[i].pTime){
                     pTime = moment(timeTable[i].pTime).format('hh:mm');
-                    if(timeTable[i].pTime > timeTable[i].sTime){
+                    if(timeTable[i].pTime == timeTable[i].sTime){
+                        dTimeStr = 'On Time'
+                    } else if(timeTable[i].pTime > timeTable[i].sTime){
                         dTime = timeTable[i].pTime - timeTable[i].sTime;
-                        dTimeStr = " (:"+ moment(dTime).format('mm') + " late)";
+                        dTimeStr = moment(dTime).format('mm') + " late";
                     } else {
                         dTime = timeTable[i].sTime - timeTable[i].pTime;
-                        dTimeStr = " (:"+ moment(dTime).format('mm') + " early)";
+                        dTimeStr = moment(dTime).format('mm') + " early";
                     }
-                    travelTime = pTime + " - " + dTimeStr;
-                } else {
-                    travelTime = sTime;
+
+                    if(timeTable[i].status === "CANCELLED") {
+                        td1.textContent = timeTable[i].status;
+                        td1.style.color = 'red';
+                    } else {
+                        td1.textContent = dTimeStr;
+                    }
+
+                    td2.textContent = sTime;
                 }
-                let td = row.insertCell();
-                td.style.textAlign = "left";
-                td.style.fontSize = "25px";
-                td.textContent = travelTime;
-            }
+            }    
         } else {
             // Otherwise lets just use a simple div
             wrapper = document.createElement('div');
