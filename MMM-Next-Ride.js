@@ -4,15 +4,17 @@
  * By Michael Byers https://github.com/MichaelByers/
  * MIT Licensed.
  */
+const MINUTE = 60000;
 
 Module.register('MMM-Next-Ride', {
 
 	defaults: {
-            route:    35245,
-            direction: 'Northbound',
-            interval: 300000 // Every 5 mins
-        },
-
+        route:    35245,
+        direction: 'Northbound',
+        branch: 'E',
+        interval: 300000 // Every 5 mins
+    },
+    
     // Define required scripts.
     getScripts: function() {
         return ["moment.js"];
@@ -39,13 +41,13 @@ Module.register('MMM-Next-Ride', {
 
 
     getRouteData: function(_this) {
-	this.url = 'https://nodejs-prod.rtd-denver.com/api/v2/nextride/stops/' + this.config.route;
+        this.url = 'https://nodejs-prod.rtd-denver.com/api/v2/nextride/stops/' + this.config.route;
 
-    // Make the initial request to the helper then set up the timer to perform the updates
-	let hour = moment().hour();
+        // Make the initial request to the helper then set up the timer to perform the updates
+        let hour = moment().hour();
 
-	if( (hour >= 5) && (hour <=22) ) {
-            _this.sendSocketNotification('GET-NEXT-RIDE', _this.url);
+        if( (hour >= 5) && (hour <=22) ) {
+                _this.sendSocketNotification('GET-NEXT-RIDE', _this.url);
         }
     },
 
@@ -53,7 +55,6 @@ Module.register('MMM-Next-Ride', {
     getDom: function() {
         // Set up the local wrapper
         let wrapper = null;
-
 
         // If we have some data to display then build the results
         if (this.loaded) {
@@ -65,7 +66,7 @@ Module.register('MMM-Next-Ride', {
             const stopName = this.route.name;
             //fill time table array
             this.route.branches.map((branch) => {
-				if(branch.directionName === this.config.direction) {
+				if(branch.directionName === this.config.direction && branch.id === this.config.branch) {
 					branch.upcomingTrips.map((trip) => {
 						let times = {
 							"sTime": trip.scheduledArrivalTime,
@@ -110,7 +111,6 @@ Module.register('MMM-Next-Ride', {
             for(let i=0; i<max; i++) {
                 let sTime = moment(timeTable[i].sTime).format('hh:mm');
                 let pTime = null;
-                let dTime = null;
                 let dTimeStr = "On Time";
                 let td1 = row1.insertCell();
                 td1.style.fontSize = "25px";
@@ -118,25 +118,23 @@ Module.register('MMM-Next-Ride', {
                 let td2 = row2.insertCell();
                 td2.style.fontSize = "25px";
 
-                if(timeTable[i].pTime){
-                    pTime = moment(timeTable[i].pTime).format('hh:mm');
-                    if(timeTable[i].pTime == timeTable[i].sTime){
-                        dTimeStr = 'On Time'
-                        td1.style.color = 'green';
-                    } else if(timeTable[i].pTime > timeTable[i].sTime){
-                        dTime = timeTable[i].pTime - timeTable[i].sTime;
-                        dTimeStr = ":"+ moment(dTime).format('mm') + " late";
-                        td1.style.color = 'red';
-                    } else {
-                        dTime = timeTable[i].sTime - timeTable[i].pTime;
-                        dTimeStr = ":"+ moment(dTime).format('mm') + " early";
-                        td1.style.color = 'green';
-                    }
-                }    
                 if(timeTable[i].status === "CANCELLED") {
                     td1.textContent = timeTable[i].status;
                     td1.style.color = 'red';
                 } else {
+                    if(timeTable[i].pTime){
+                        pTime = moment(timeTable[i].pTime).format('hh:mm');
+                        if(Math.abs(timeTable[i].pTime - timeTable[i].sTime) < MINUTE) {
+                            dTimeStr = ' On Time'
+                            td1.style.color = 'green';
+                        } else if(timeTable[i].pTime > timeTable[i].sTime){
+                            dTimeStr = " :"+ calculateDelta(timeTable[i].pTime, timeTable[i].sTime) + " late";
+                            td1.style.color = 'red';
+                        } else {
+                            dTimeStr = " :"+ calculateDelta(timeTable[i].sTime, timeTable[i].pTime) + " early";
+                            td1.style.color = 'green';
+                        }
+                    }
                     td1.textContent = dTimeStr;
                 }
                 td2.textContent = sTime;
@@ -151,6 +149,16 @@ Module.register('MMM-Next-Ride', {
         return wrapper;
     },
 
+    calculateDelta: function(a,b){
+        let deltaStr = '';
+        let delta = Math.trunc((a - b) / MINUTE);
+        if(delta < 10) {
+            deltaStr = '0' + delta.toString();
+        } else {
+            deltaStr = delta.toString();
+        }
+        return deltaStr;
+    },
 
     socketNotificationReceived: function(notification, payload) {
         // check to see if the response was for us and used the same url
